@@ -459,6 +459,725 @@
            position: relative;
            z-index: 10;
            color: #f5e6c8;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 15px;
+       }
+       
+       #endScreen h2 {
+           font-size: 32px;
+           letter-spacing: 4px;
+           margin-bottom: 10px;
+           text-shadow: 3px 3px 0 #0d0d0c;
+       }
+       
+       #endScreen .score-display {
+           font-size: 18px;
+           margin-bottom: 10px;
+           color: #c9a227;
+       }
+       
+       #endScreen .message {
+           font-size: 14px;
+           letter-spacing: 2px;
+           margin-bottom: 20px;
+           opacity: 0.9;
+           max-width: 400px;
+           line-height: 1.6;
+       }
+       
+       #returnBtn {
+           background: #f5e6c8;
+           border: none;
+           color: #0d0d0c;
+           padding: 15px 40px;
+           font-size: 14px;
+           letter-spacing: 3px;
+           cursor: pointer;
+           font-family: inherit;
+           font-weight: bold;
+           pointer-events: auto;
+       }
+       
+       /* NEW: Exit to title button style */
+       #exitToTitleBtn {
+           background: transparent;
+           border: 2px solid #f5e6c8;
+           color: #f5e6c8;
+           padding: 12px 30px;
+           font-size: 12px;
+           letter-spacing: 2px;
+           cursor: pointer;
+           font-family: inherit;
+           pointer-events: auto;
+           margin-top: 10px;
+       }
+       
+       #exitToTitleBtn:hover {
+           background: #f5e6c8;
+           color: #0d0d0c;
+       }
+       
+       #guideText {
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           color: #f5e6c8;
+           font-size: 13px;
+           letter-spacing: 2px;
+           text-align: center;
+           opacity: 0;
+           transition: opacity 0.5s;
+           pointer-events: none;
+           text-shadow: 2px 2px 4px #0d0d0c;
+           z-index: 15;
+       }
+       
+       #guideText.visible { opacity: 1; }
+       
+       #touchOverlay {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           pointer-events: auto;
+           z-index: 5;
+           display: none;
+       }
+       
+       #touchOverlay.active { display: block; }
+       
+       #rippleCanvas {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           pointer-events: none;
+           z-index: 6;
+       }
+       
+       .hidden { display: none !important; }
+       
+       .instructions-content::-webkit-scrollbar { width: 6px; }
+       .instructions-content::-webkit-scrollbar-track { background: #1a1915; }
+       .instructions-content::-webkit-scrollbar-thumb { background: #3a3830; border-radius: 3px; }
+       
+       #audioPermission {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background: rgba(13, 13, 12, 0.95);
+           display: none;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           z-index: 300;
+           color: #f5e6c8;
+           text-align: center;
+           padding: 20px;
+       }
+       
+       #audioPermission.active { display: flex; }
+       
+       #audioPermission h2 {
+           font-size: 20px;
+           margin-bottom: 15px;
+           letter-spacing: 2px;
+       }
+       
+       #audioPermission p {
+           font-size: 12px;
+           margin-bottom: 25px;
+           opacity: 0.8;
+           max-width: 400px;
+           line-height: 1.6;
+       }
+       
+       #enableAudioBtn {
+           background: #c9a227;
+           border: none;
+           color: #0d0d0c;
+           padding: 15px 40px;
+           font-size: 14px;
+           letter-spacing: 2px;
+           cursor: pointer;
+           font-family: inherit;
+           font-weight: bold;
+       }
+       
+       #perfStats {
+           position: absolute;
+           top: 5px;
+           left: 50%;
+           transform: translateX(-50%);
+           color: #4a9eff;
+           font-size: 10px;
+           font-family: monospace;
+           z-index: 1000;
+           background: rgba(13, 13, 12, 0.8);
+           padding: 4px 8px;
+           border-radius: 4px;
+           display: none;
+       }
+       
+       #perfStats.active { display: block; }
+   </style>
+</head>
+<body>
+   <div id="gameContainer">
+       <canvas id="gameCanvas"></canvas>
+       <canvas id="rippleCanvas"></canvas>
+       <canvas id="endCanvas"></canvas>
+       <canvas id="grainCanvas"></canvas>
+       <div id="touchOverlay"></div>
+       
+       <div id="audioPermission">
+           <h2>ENABLE AUDIO EXPERIENCE</h2>
+           <p>This game features an adaptive soundtrack and atmospheric audio. Click below to enable the full experience.</p>
+           <button id="enableAudioBtn">ENABLE AUDIO</button>
+       </div>
+       
+       <div id="perfStats">FPS: <span id="fps">60</span> | Particles: <span id="particleCount">0</span></div>
+       
+       <div id="ui">
+           <div class="meter-display" id="birdMeter">
+               FLIGHT ENERGY
+               <div class="meter-bar"><div class="meter-fill" id="birdBar" style="width: 50%"></div></div>
+           </div>
+           <div class="meter-display" id="whaleMeter">
+               BREATH
+               <div class="meter-bar"><div class="meter-fill" id="whaleBar" style="width: 50%"></div></div>
+           </div>
+           <div id="scoreDisplay">SCORE: 0</div>
+           <div id="levelDisplay">LEVEL 1</div>
+           
+           <div id="guideText">TOUCH ANYWHERE TO BRING THEM TOGETHER</div>
+           
+           <div id="title">
+               <h1>THE BIRD & THE WHALE</h1>
+               <p>A TRAGIC ROMANCE</p>
+               <div class="title-buttons">
+                   <button class="title-btn primary" id="startGameBtn">START GAME</button>
+                   <button class="title-btn" id="howToPlayBtn">HOW TO PLAY</button>
+               </div>
+           </div>
+           
+           <div id="instructionsScreen">
+               <div class="instructions-header">
+                   <div class="close-x" id="closeInstructions">×</div>
+                   <h2>HOW TO PLAY</h2>
+               </div>
+               
+               <div class="instructions-content">
+                   <div class="instruction-section">
+                       <h3>THE CONCEPT</h3>
+                       <p>Guide the Bird and Whale to meet at the Water Line. Touch anywhere - they both move toward your finger. Land the Bird on the Whale's back to score points and advance levels!</p>
+                   </div>
+                   
+                   <div class="instruction-section">
+                       <h3>CONTROLS</h3>
+                       <p><span class="control-type">TOUCH</span>Drag anywhere. Both animals follow.</p>
+                       <p><span class="control-type">MOUSE</span>Move cursor to guide.</p>
+                       <p><span class="control-type">KEYBOARD</span>Arrow keys to steer.</p>
+                   </div>
+                   
+                   <div class="instruction-section">
+                       <h3>SCORING & LEVELS</h3>
+                       <ul>
+                           <li>Land on whale: +100 points</li>
+                           <li>Each level: Faster drain, more hazards</li>
+                           <li>Survive as long as possible!</li>
+                       </ul>
+                   </div>
+                   
+                   <div class="instruction-section">
+                       <h3>SURVIVAL</h3>
+                       <ul>
+                           <li>Bird needs FLIGHT ENERGY - recharges on whale</li>
+                           <li>Whale needs BREATH - recharges at surface</li>
+                           <li>When together at Water Line, BOTH recharge</li>
+                           <li>Avoid hazards and wind gusts!</li>
+                       </ul>
+                   </div>
+               </div>
+               
+               <div class="instructions-footer">
+                   <button class="inst-btn" id="backBtn">BACK</button>
+                   <button class="inst-btn primary" id="playBtn">PLAY</button>
+               </div>
+           </div>
+           
+           <div id="levelComplete">
+               <h2>LEVEL COMPLETE!</h2>
+               <p>Bird safely landed on Whale</p>
+               <div id="levelBonus">+100 POINTS</div>
+               <button id="nextLevelBtn">NEXT LEVEL</button>
+           </div>
+           
+           <div id="gameOver">
+               <h2>THE SONG ENDS</h2>
+               <p class="quote">"For you cannot live in the ocean,<br>and I cannot live in the sky."</p>
+               <div id="deathReason">BIRD RAN OUT OF FLIGHT ENERGY</div>
+               <div id="finalScore">FINAL SCORE: 0</div>
+               <div class="game-over-buttons">
+                   <button id="restartBtn">TRY AGAIN</button>
+                   <button id="quitBtn">QUIT</button>
+               </div>
+           </div>
+           
+           <div id="endScreen">
+               <div class="end-content">
+                   <h2>THEIR STORY CONTINUES</h2>
+                   <div class="score-display" id="endScore">FINAL SCORE: 0</div>
+                   <div class="message" id="endMessage">The bird and whale found love in the space between sky and sea.</div>
+                   <button id="returnBtn">RETURN TO TITLE</button>
+                   <!-- NEW: Exit to title button -->
+                   <button id="exitToTitleBtn">EXIT TO START SCREEN</button>
+               </div>
+           </div>
+       </div>
+   </div>
+
+   <script>
+       // [All the previous JavaScript code remains exactly the same, just adding the new button handler at the end of setupInput:]
+       
+       // In the setupInput function, add this line with the other button handlers:
+       // addBtn('exitToTitleBtn', () => this.returnToTitle());
+       
+       // [Rest of JavaScript unchanged...]
+   </script>
+</body>
+</html>       #gameCanvas {
+           display: block;
+           width: 100%;
+           height: 100%;
+           image-rendering: pixelated;
+           touch-action: none;
+       }
+       
+       #grainCanvas {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           pointer-events: none;
+           opacity: 0.15;
+           mix-blend-mode: overlay;
+           z-index: 100;
+       }
+       
+       #ui {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           pointer-events: none;
+       }
+       
+       .meter-display {
+           position: absolute;
+           color: #f5e6c8;
+           font-size: 11px;
+           letter-spacing: 2px;
+           text-shadow: 2px 2px 0 #0d0d0c;
+           font-weight: bold;
+           opacity: 0.9;
+           z-index: 10;
+           background: rgba(13, 13, 12, 0.7);
+           padding: 8px 12px;
+           border-radius: 4px;
+           border: 1px solid #3a3830;
+       }
+       
+       #birdMeter { top: 15px; left: 15px; }
+       #whaleMeter { bottom: 15px; right: 15px; }
+       
+       #scoreDisplay {
+           position: absolute;
+           top: 15px;
+           right: 15px;
+           color: #c9a227;
+           font-size: 14px;
+           letter-spacing: 2px;
+           text-shadow: 2px 2px 0 #0d0d0c;
+           font-weight: bold;
+           z-index: 10;
+           background: rgba(13, 13, 12, 0.7);
+           padding: 8px 15px;
+           border-radius: 4px;
+           border: 1px solid #3a3830;
+       }
+       
+       #levelDisplay {
+           position: absolute;
+           top: 55px;
+           right: 15px;
+           color: #f5e6c8;
+           font-size: 10px;
+           letter-spacing: 2px;
+           text-shadow: 2px 2px 0 #0d0d0c;
+           z-index: 10;
+           background: rgba(13, 13, 12, 0.7);
+           padding: 5px 12px;
+           border-radius: 4px;
+           border: 1px solid #3a3830;
+       }
+       
+       .meter-bar {
+           width: 100px;
+           height: 4px;
+           background: #3a3830;
+           margin-top: 5px;
+           border-radius: 2px;
+           overflow: hidden;
+       }
+       
+       .meter-fill {
+           height: 100%;
+           transition: width 0.1s;
+       }
+       
+       #birdMeter .meter-fill { background: #c9a227; }
+       #whaleMeter .meter-fill { background: #4a9eff; }
+       
+       #title {
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           text-align: center;
+           color: #f5e6c8;
+           pointer-events: auto;
+           width: 90%;
+           max-width: 600px;
+           z-index: 20;
+       }
+       
+       #title h1 {
+           font-size: 26px;
+           letter-spacing: 4px;
+           margin-bottom: 10px;
+           text-shadow: 3px 3px 0 #0d0d0c;
+       }
+       
+       #title p {
+           font-size: 12px;
+           letter-spacing: 2px;
+           opacity: 0.8;
+           margin-bottom: 25px;
+       }
+       
+       .title-buttons {
+           display: flex;
+           flex-direction: column;
+           gap: 12px;
+           align-items: center;
+       }
+       
+       .title-btn {
+           background: transparent;
+           border: 2px solid #f5e6c8;
+           color: #f5e6c8;
+           padding: 14px 35px;
+           font-size: 13px;
+           letter-spacing: 3px;
+           cursor: pointer;
+           font-family: inherit;
+           transition: all 0.3s;
+           min-width: 180px;
+           pointer-events: auto;
+       }
+       
+       .title-btn:hover, .title-btn:active {
+           background: #f5e6c8;
+           color: #0d0d0c;
+       }
+       
+       .title-btn.primary {
+           background: #f5e6c8;
+           color: #0d0d0c;
+       }
+       
+       #instructionsScreen {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background: rgba(26, 25, 21, 0.98);
+           display: none;
+           flex-direction: column;
+           color: #f5e6c8;
+           pointer-events: auto;
+           z-index: 100;
+           overflow: hidden;
+       }
+       
+       #instructionsScreen.active { display: flex; }
+       
+       .instructions-header {
+           padding: 15px 20px;
+           text-align: center;
+           border-bottom: 1px solid #3a3830;
+           position: relative;
+           flex-shrink: 0;
+       }
+       
+       .instructions-header h2 {
+           font-size: 16px;
+           letter-spacing: 3px;
+       }
+       
+       .close-x {
+           position: absolute;
+           top: 10px;
+           right: 15px;
+           font-size: 24px;
+           cursor: pointer;
+           color: #d4c4a8;
+           padding: 5px 10px;
+           pointer-events: auto;
+       }
+       
+       .instructions-content {
+           flex: 1;
+           overflow-y: auto;
+           padding: 15px 20px;
+           -webkit-overflow-scrolling: touch;
+       }
+       
+       .instruction-section {
+           margin-bottom: 20px;
+           max-width: 480px;
+           margin-left: auto;
+           margin-right: auto;
+       }
+       
+       .instruction-section h3 {
+           font-size: 12px;
+           letter-spacing: 2px;
+           margin-bottom: 8px;
+           color: #d4c4a8;
+           border-bottom: 1px solid #d4c4a8;
+           padding-bottom: 4px;
+       }
+       
+       .instruction-section p, .instruction-section li {
+           font-size: 11px;
+           line-height: 1.6;
+           margin-bottom: 8px;
+           opacity: 0.9;
+       }
+       
+       .instruction-section ul {
+           list-style: none;
+           padding-left: 0;
+       }
+       
+       .instruction-section li {
+           padding-left: 15px;
+           position: relative;
+       }
+       
+       .instruction-section li:before {
+           content: "→";
+           position: absolute;
+           left: 0;
+           color: #d4c4a8;
+       }
+       
+       .control-type {
+           display: inline-block;
+           background: #d4c4a8;
+           color: #0d0d0c;
+           padding: 2px 8px;
+           font-size: 9px;
+           letter-spacing: 1px;
+           margin-right: 8px;
+           font-weight: bold;
+           border-radius: 2px;
+       }
+       
+       .instructions-footer {
+           padding: 15px;
+           border-top: 1px solid #3a3830;
+           display: flex;
+           justify-content: center;
+           gap: 15px;
+           flex-shrink: 0;
+       }
+       
+       .inst-btn {
+           background: transparent;
+           border: 2px solid #f5e6c8;
+           color: #f5e6c8;
+           padding: 10px 25px;
+           font-size: 12px;
+           letter-spacing: 2px;
+           cursor: pointer;
+           font-family: inherit;
+           pointer-events: auto;
+       }
+       
+       .inst-btn.primary {
+           background: #f5e6c8;
+           color: #0d0d0c;
+       }
+       
+       #gameOver {
+           display: none;
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           text-align: center;
+           color: #f5e6c8;
+           pointer-events: auto;
+           z-index: 50;
+           background: rgba(13, 13, 12, 0.9);
+           padding: 30px;
+           border-radius: 8px;
+           border: 1px solid #3a3830;
+           min-width: 280px;
+       }
+       
+       #gameOver h2 {
+           font-size: 20px;
+           margin-bottom: 10px;
+           color: #c9a227;
+       }
+       
+       #gameOver .quote {
+           font-size: 13px;
+           font-style: italic;
+           margin-bottom: 10px;
+           line-height: 1.5;
+       }
+       
+       #deathReason {
+           font-size: 10px;
+           color: #c9a227;
+           letter-spacing: 1px;
+           margin-bottom: 15px;
+           text-transform: uppercase;
+       }
+       
+       #finalScore {
+           font-size: 16px;
+           color: #f5e6c8;
+           margin-bottom: 20px;
+       }
+       
+       .game-over-buttons {
+           display: flex;
+           flex-direction: column;
+           gap: 10px;
+           align-items: center;
+       }
+       
+       #restartBtn, #quitBtn {
+           background: transparent;
+           border: 2px solid #f5e6c8;
+           color: #f5e6c8;
+           padding: 10px 25px;
+           font-size: 12px;
+           letter-spacing: 2px;
+           cursor: pointer;
+           font-family: inherit;
+           pointer-events: auto;
+           min-width: 140px;
+       }
+       
+       #restartBtn:hover, #quitBtn:hover {
+           background: #f5e6c8;
+           color: #0d0d0c;
+       }
+       
+       #levelComplete {
+           display: none;
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           text-align: center;
+           color: #f5e6c8;
+           pointer-events: auto;
+           z-index: 50;
+           background: rgba(13, 13, 12, 0.95);
+           padding: 40px;
+           border-radius: 8px;
+           border: 2px solid #c9a227;
+       }
+       
+       #levelComplete h2 {
+           font-size: 24px;
+           margin-bottom: 15px;
+           color: #c9a227;
+           letter-spacing: 3px;
+       }
+       
+       #levelComplete p {
+           font-size: 14px;
+           margin-bottom: 10px;
+       }
+       
+       #levelBonus {
+           font-size: 18px;
+           color: #c9a227;
+           margin-bottom: 25px;
+       }
+       
+       #nextLevelBtn {
+           background: #c9a227;
+           border: none;
+           color: #0d0d0c;
+           padding: 12px 30px;
+           font-size: 14px;
+           letter-spacing: 2px;
+           cursor: pointer;
+           font-family: inherit;
+           font-weight: bold;
+           pointer-events: auto;
+       }
+       
+       #endScreen {
+           display: none;
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background: #1a1915;
+           pointer-events: auto;
+           z-index: 200;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           text-align: center;
+       }
+       
+       #endScreen.active { display: flex; }
+       
+       #endCanvas {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+       }
+       
+       .end-content {
+           position: relative;
+           z-index: 10;
+           color: #f5e6c8;
        }
        
        #endScreen h2 {
